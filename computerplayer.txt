@@ -1,0 +1,219 @@
+using System;
+using System.Windows;
+using System.Collections.Generic;
+
+namespace B20_Ex02_Eran_311246649_Tomer_312500937
+{
+    class ComputerPlayer
+    {
+        private uint m_Score;
+        private string m_Name;
+        private List<MemoryCell> m_Memory;
+        private MemoryCell m_NextMove;
+
+        private struct MemoryCell
+        {
+            private int m_Freqency;
+            private uint m_FirstRow;
+            private uint m_FirstCol;
+            private uint m_SecondRow;
+            private uint m_SecondCol;
+
+            internal MemoryCell(uint i_Row, uint i_Col)
+            {
+                m_FirstRow = i_Row;
+                m_FirstCol = i_Col;
+                m_SecondRow = m_SecondCol = 0;
+                m_Freqency = 0;
+            }
+
+            public MemoryCell(MemoryCell memCell)
+            {
+                m_FirstRow = memCell.FirstRow;
+                m_FirstCol = memCell.FirstCol;
+                m_SecondRow = memCell.SecondRow;
+                m_SecondCol = memCell.SecondCol;
+                m_Freqency = 0;
+            }
+
+            public int Frequency
+            {
+                set
+                {
+                    m_Freqency = value;
+                }
+                get
+                {
+                    return m_Freqency;
+                }
+            }
+
+            public uint FirstRow
+            {
+                set
+                {
+                    m_FirstRow = value;
+                }
+                get
+                {
+                    return m_FirstRow;
+                }
+            }
+            public uint FirstCol
+            {
+                set
+                {
+                    m_FirstCol = value;
+                }
+                get
+                {
+                    return m_FirstCol;
+                }
+            }
+            public uint SecondRow
+            {
+                set
+                {
+                    m_SecondRow = value;
+                }
+                get
+                {
+                    return m_SecondRow;
+                }
+            }
+            public uint SecondCol
+            {
+                set
+                {
+                    m_SecondCol = value;
+                }
+                get
+                {
+                    return m_SecondCol;
+                }
+            }
+
+
+        }
+
+        public void AddToMemory(uint i_Row, uint i_Col) // in case in UI match is false
+        {
+            int indexToInsert;
+            if(CheckIfKeyExist(i_Row, i_Col, out indexToInsert))
+            {
+                MemoryCell existedCell = m_Memory[indexToInsert];
+                existedCell.SecondRow = i_Row;
+                existedCell.SecondCol = i_Col;
+                existedCell.Frequency++;
+                CheckFrequency(indexToInsert); 
+            }
+            else
+            { 
+                AddNewMemoryCell(i_Row, i_Col);
+            }
+        }
+
+        public void AddNewMemoryCell(uint i_Row, uint i_Col)
+        {
+            MemoryCell cellToAdd = new MemoryCell(i_Row, i_Col);
+            if (m_Memory.Count == 6)
+            {
+                MemoryCell endCell = m_Memory[m_Memory.Count - 1];
+                m_Memory.Remove(endCell);
+            }
+            m_Memory.Add(cellToAdd);
+        }
+
+        public void CheckFrequency(int i_IndexToCheck)
+        {
+            MemoryCell CellToCheck = m_Memory[i_IndexToCheck];
+            if (m_Memory[i_IndexToCheck].Frequency == 2)
+            {
+                m_NextMove = CellToCheck;
+                m_Memory.Remove(CellToCheck);
+            }
+        }
+
+        public bool CheckIfKeyExist(uint i_Row, uint i_Col, out int o_IndexToInsert)
+        {
+            bool isExist = false;
+            int currentIndex = o_IndexToInsert = 0;
+            foreach (MemoryCell currentCell in m_Memory)
+            {
+                if(currentCell.FirstRow == i_Row && currentCell.FirstCol == i_Col)
+                {
+                    isExist = true;
+                    o_IndexToInsert = currentIndex;
+                }
+                currentIndex++;
+            }
+            return isExist;
+        }
+
+        public ComputerPlayer(string i_Name)
+        {
+            m_Name = i_Name;
+            m_Memory = new List<MemoryCell>(6);
+            m_NextMove = new MemoryCell();
+            m_NextMove.Frequency = -1;
+        }
+        public string Name
+        {
+            set
+            {
+                m_Name = value;
+            }
+            get
+            {
+                return m_Name;
+            }
+        }
+        public uint Score
+        {
+            set
+            {
+                m_Score = value;
+            }
+            get
+            {
+                return m_Score;
+            }
+        }
+        
+        public string MakeMove(uint i_Row, uint i_Col,bool isFirstMove)
+        {
+            string choiceStr;
+            if(m_NextMove.Frequency == -1)
+            {
+                choiceStr = RandMove(i_Row, i_Col);
+            }
+            else
+            {
+                if(isFirstMove == true)
+                {
+                    choiceStr = CreateChoiceFromIndexes((int)m_NextMove.FirstRow, (int)m_NextMove.FirstCol);
+                }
+                else
+                {
+                    choiceStr = CreateChoiceFromIndexes((int)m_NextMove.SecondRow, (int)m_NextMove.SecondCol);
+                    m_NextMove.Frequency = -1;
+                }
+            }
+            return choiceStr;
+        }
+        public string RandMove(uint i_Row, uint i_Col)
+        {
+            Random rand = new Random();
+            int row = rand.Next(1, (int)i_Row);
+            int col = rand.Next(1, (int)i_Col);
+            return CreateChoiceFromIndexes(row, col);
+        }
+        
+        public string CreateChoiceFromIndexes(int i_Row, int i_Col)
+        {
+            char col = Convert.ToChar(i_Col + 'A');
+            string choice = string.Format("{0}{1}", col, i_Row);
+            return choice;
+        }
+    }
+}

@@ -295,6 +295,11 @@ Notice: Any time, for exit the game press 'Q'",
                         winner.Clear();
                         winner.Append(m_ComputerPlayer.Name);
                     }
+                    else if(m_ComputerPlayer.Score == m_FirstPlayer.Score)
+                    {
+                        winner.Clear();
+                        winner.Append(" Its a TIE!");
+                    }
 
                     break;
                 default:
@@ -302,6 +307,11 @@ Notice: Any time, for exit the game press 'Q'",
                     {
                         winner.Clear();
                         winner.Append(m_SecondPlayer.Name);
+                    }
+                    else if (m_SecondPlayer.Score == m_FirstPlayer.Score)
+                    {
+                        winner.Clear();
+                        winner.Append(" Its a TIE!");
                     }
 
                     break;

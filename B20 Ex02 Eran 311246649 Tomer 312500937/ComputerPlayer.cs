@@ -7,10 +7,12 @@ namespace B20_Ex02_Eran_311246649_Tomer_312500937
     {
         private int m_Score;
         private string m_Name;
+        private Random m_Rand;
 
         public ComputerPlayer(string i_Name)
         {
             m_Name = i_Name;
+            m_Rand = new Random();
         }
 
         public string Name
@@ -41,9 +43,8 @@ namespace B20_Ex02_Eran_311246649_Tomer_312500937
 
         public string RandMove(int i_Row, int i_Col)
         {
-            Random rand = new Random();
-            int row = rand.Next(1, i_Row);
-            char col = Convert.ToChar(rand.Next(1, i_Col) + 'A');
+            int row = m_Rand.Next(1, i_Row);
+            char col = Convert.ToChar(m_Rand.Next(1, i_Col) + 'A');
             string choice = string.Format("{0}{1}", col, row);
             return choice;
         }

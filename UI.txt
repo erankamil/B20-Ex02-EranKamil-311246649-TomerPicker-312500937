@@ -1,0 +1,441 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace B20_Ex02_Eran_311246649_Tomer_312500937
+{
+    class UI
+    {
+        private GameControl m_Controller;
+        private Player m_FirstPlayer;
+        private Player m_SecondPlayer;
+        private Enum m_GameType;
+        private ComputerPlayer m_ComputerPlayer;
+        Dictionary<int,object> m_Collection;
+
+        public void RunGame()
+        {
+            StringBuilder sb = new StringBuilder();
+            bool anotherGame = true;
+            InitializePlayers();
+            while (anotherGame)
+            {
+                InitializeGameBoard();
+                InitializeCollection();
+                PrintBoard(sb);
+                StartGame(sb ,ref anotherGame);
+            }
+        }
+
+        public void InitializePlayers()
+        {
+            getPlayerName();
+
+            string msg = string.Format(
+@"Hey {0} please choose you preference,
+Press '1' for playing against friend 
+Press '2' for playing against computer.
+Notice: Any time, for exit the game press 'Q'",
+            m_FirstPlayer.Name);
+            Console.WriteLine(msg);
+
+            string selectionStr = Console.ReadLine();
+            switch (int.Parse(selectionStr))
+            {
+                case (int)eGameType.againstFriend:
+                    m_GameType = eGameType.againstFriend;
+                    getPlayerName();
+                    break;
+                case (int)eGameType.againstComputer:
+                    m_GameType = eGameType.againstComputer;
+                    m_ComputerPlayer = new ComputerPlayer("computer");
+                    break;
+            }
+        }
+
+        public void getPlayerName()
+        {
+            Console.WriteLine("Please enter your name: ");
+            string firstPlayerName = Console.ReadLine();
+            if (m_FirstPlayer != null)
+            {
+                m_SecondPlayer = new Player(firstPlayerName);
+            }
+            else
+            {
+                m_FirstPlayer = new Player(firstPlayerName);
+            }
+        }
+
+        public void InitializeGameBoard()
+        {
+            string heightStr, widthStr;
+            do {
+                Console.WriteLine("Please enter board height:");
+                do
+                {
+                    heightStr = Console.ReadLine();
+
+                } while (!CheckValidSize(heightStr));
+                Console.WriteLine("Please enter board height:");
+                do
+                {
+                    widthStr = Console.ReadLine();
+
+                } while (!CheckValidSize(widthStr));
+            } while (!CheckEvenNumOfCells(uint.Parse(heightStr), uint.Parse(widthStr)));
+            m_Controller = new GameControl(uint.Parse(heightStr), uint.Parse(widthStr));
+        }
+
+        public bool CheckEvenNumOfCells(uint i_Height, uint i_Width)
+        {
+            bool isEven = i_Height * i_Width % 2 == 0;
+            if(isEven == false)
+            {
+                Console.WriteLine("Invalid input: number of cells must be even.");
+            }
+            return isEven;
+        }
+
+        public bool CheckValidSize(string i_Length)
+        {
+            int lengthNumeric;
+            bool isValid = int.TryParse(i_Length, out lengthNumeric);
+            if(isValid == true)
+            {
+                isValid = lengthNumeric >= 4 && lengthNumeric <= 6;
+            } 
+            if(isValid == false)
+            {
+                Console.WriteLine("Invalid input: height or length should be 4-6");
+            }
+            return isValid;
+        }
+
+        public void InitializeCollection()
+        {
+            char data = 'A';
+            m_Collection = new Dictionary<int, object>();
+            uint size = m_Controller.Board.Rows * m_Controller.Board.Cols;
+            for (int i = 0; i < size; i++)
+            {
+                m_Collection.Add(i, data);
+                data++;
+            }
+        }
+
+        public void printLine(StringBuilder i_Sb)
+        {
+            i_Sb.Clear();
+            i_Sb.Append("  ");
+            for (int i = 0; i < m_Controller.Board.Cols; i++)
+            {
+                i_Sb.Append("====");
+            }
+            Console.WriteLine(i_Sb);
+        }
+
+        public void printColsFrame(StringBuilder i_Sb)
+        {
+            i_Sb.Clear();
+            char colSymbol = 'A';
+            i_Sb.Append("    ");
+            for (int i = 0; i < m_Controller.Board.Cols; i++)
+            {
+                i_Sb.Append(colSymbol.ToString());
+                i_Sb.Append("   ");
+                colSymbol++;
+            }
+            Console.WriteLine(i_Sb);
+        }
+
+        public void PrintBoard(StringBuilder i_Sb)
+        {
+            printColsFrame(i_Sb);
+            for (int i = 0; i < m_Controller.Board.Rows; i++)
+            {
+                printLine(i_Sb);
+                i_Sb.Clear();
+                i_Sb.Append(i + 1 + " ");
+                for (int j = 0; j < m_Controller.Board.Cols; j++)
+                {
+                    i_Sb.Append("|");
+                    if (m_Controller.Board.Matrix[i, j].IsOpen)
+                    {
+                        int key = m_Controller.Board.Matrix[i, j].Key;
+                        object data;
+                        m_Collection.TryGetValue(key, out data);
+                        i_Sb.Append(" " + data.ToString() + " ");
+                    }
+                    else
+                    {
+                        i_Sb.Append("   ");
+                    }
+                }
+                i_Sb.Append("|");
+                Console.WriteLine(i_Sb);
+            }
+            printLine(i_Sb);
+        }
+
+        public void StrInputToIndexes(string i_InputStr, out int o_Row, out int o_Col)
+        {
+            o_Col = i_InputStr[0] - 'A';
+            o_Row = i_InputStr[1] - '1';
+        }
+
+        public void StartGame(StringBuilder i_Sd, ref bool io_AnotherTurn)
+        {
+            uint maxOpenPairs = (m_Controller.Board.Rows * m_Controller.Board.Cols) / 2;
+            Enum isTurn = ePlayerType.playerOne;
+            bool hasMatch = false;
+            while (m_Controller.OpenedPairs != maxOpenPairs)
+            {
+                MakeMove(isTurn, ref hasMatch, i_Sd);
+                if (!hasMatch)
+                {
+                    PassTurn(ref isTurn);
+                }
+            }
+            AnnounceWinner();
+            PlayAgain(ref io_AnotherTurn); 
+        }
+
+        public void PlayAgain(ref bool io_AnotherTurn)
+        {
+            string playerChoice;
+            Console.WriteLine(@"Press 1 to restart game
+Press Any key to end game");
+            playerChoice = Console.ReadLine();
+            io_AnotherTurn = playerChoice[0] == '1' && playerChoice.Length == 1;  
+        }
+        public void AnnounceWinner()
+        {
+            StringBuilder winner = new StringBuilder(m_FirstPlayer.Name);
+            switch (m_GameType)
+            {
+                case eGameType.againstComputer:
+                    if(m_ComputerPlayer.Score > m_FirstPlayer.Score)
+                    {
+                        winner.Clear();
+                        winner.Append(m_ComputerPlayer.Name);
+                    }
+                    break;
+                default:
+                    if (m_SecondPlayer.Score > m_FirstPlayer.Score)
+                    {
+                        winner.Clear();
+                        winner.Append(m_SecondPlayer.Name);
+                    }
+                    break;
+            }
+            winner.Insert(0, "Game Over! The winner is: ");
+            Console.WriteLine(winner);
+        }
+
+        public void GetComputerMove(out int o_Row, out int o_Col, Enum i_PlayerType)
+        {
+            string choiceStr;
+            uint NumOfRows = m_Controller.Board.Rows;
+            uint NumOfCols = m_Controller.Board.Cols;
+            Console.WriteLine("Computer turn:");
+            System.Threading.Thread.Sleep(2000);
+            do
+            {
+                choiceStr = m_ComputerPlayer.RandMove(NumOfRows, NumOfCols);
+            }
+            while (!CheckValidInput(choiceStr, i_PlayerType));
+            StrInputToIndexes(choiceStr, out o_Row, out o_Col);
+        }
+
+        public bool CheckValidInput(string i_ChoiceStr, Enum i_PlayerType)
+        {
+            bool isValid = true;
+            int chosenRow, chosenCol;
+            if (i_ChoiceStr[0] == 'Q' && i_ChoiceStr.Length == 1)
+            {
+                Environment.Exit(1);
+            }
+            StrInputToIndexes(i_ChoiceStr, out chosenRow, out chosenCol);
+            if (i_PlayerType.ToString() != ePlayerType.computer.ToString())
+            {
+                CheckRange(chosenRow, chosenCol, ref isValid);
+                if (isValid)
+                {
+                    if (CheckBoardCellState(chosenRow, chosenCol))
+                    {
+                        Console.WriteLine("This cell is already open! please choose again:");
+                        isValid = false;
+                    }
+                }
+            }
+            else // in case player type is computer 
+            {
+                isValid = !CheckBoardCellState(chosenRow, chosenCol);
+            }
+            return isValid;
+        }
+
+        public bool CheckBoardCellState(int i_Row, int i_Col)
+        {
+            return m_Controller.Board.Matrix[i_Row, i_Col].IsOpen;
+        }
+
+        public void CheckRange(int i_Row, int i_Col, ref bool io_IsValid)
+        {
+            if(i_Row < 0 || i_Row > m_Controller.Board.Rows - 1)
+            {
+                Console.WriteLine("Invalid Input: please enter row in range of the board.");
+                io_IsValid = false;
+            }
+            if (i_Col < 0 || i_Col > m_Controller.Board.Cols - 1)
+            {
+                Console.WriteLine("Invalid Input: please enter letter in range of the board.");
+                io_IsValid = false;
+            }
+        }
+
+        public void MakeMove(Enum i_PlayerType, ref bool io_HasMatch, StringBuilder i_Sd)
+        {
+            int firstRow, firstCol, secondRow, secondCol;
+
+            GetMove(out firstRow, out firstCol, i_PlayerType);
+            ShowChoosenCellData(firstRow, firstCol, i_Sd);
+
+            GetMove(out secondRow, out secondCol, i_PlayerType);
+            ShowChoosenCellData(secondRow, secondCol, i_Sd);
+
+            if (IsMatch(firstRow, firstCol, secondRow, secondCol))
+            {
+                Console.WriteLine("Match! You get another turn.");
+                AddScore(i_PlayerType);
+                io_HasMatch = true;
+            }
+            else
+            {
+                m_ComputerPlayer.AddToMemory((uint)firstRow, (uint)secondRow);
+                m_ComputerPlayer.AddToMemory((uint)secondRow, (uint)secondCol);
+                ClearUnmatchCells(firstRow, firstCol, secondRow, secondCol, i_Sd);
+                io_HasMatch = false;
+            }
+
+        }
+
+        public void ClearUnmatchCells(int i_FirstRow, int i_FirstCol, int i_SecondRow, int i_SecondCol, 
+            StringBuilder i_Sd)
+        {
+            System.Threading.Thread.Sleep(2000);
+            m_Controller.Board.Matrix[i_FirstRow, i_FirstCol].IsOpen = false;
+            m_Controller.Board.Matrix[i_SecondRow, i_SecondCol].IsOpen = false;
+            Ex02.ConsoleUtils.Screen.Clear();
+            PrintBoard(i_Sd);
+        }
+
+        public void AddScore(Enum i_PlayerType)
+        {
+            switch (i_PlayerType)
+            {
+                case ePlayerType.playerOne:
+                    m_FirstPlayer.Score++;
+                    break;
+                case ePlayerType.playerTwo:
+                    m_SecondPlayer.Score++;
+                    break;
+                case ePlayerType.computer:
+                    m_ComputerPlayer.Score++;
+                    break;
+            }
+        }
+        public void PassTurn(ref Enum i_PlayerType)
+        {
+            switch (i_PlayerType)
+            {
+                case (ePlayerType.playerOne):
+                    if (m_SecondPlayer == null)
+                    {
+                        i_PlayerType = ePlayerType.computer;
+                    }
+                    else
+                    {
+                        i_PlayerType = ePlayerType.playerTwo;
+                    }
+                    break;
+                case (ePlayerType.playerTwo):
+                    i_PlayerType = ePlayerType.playerOne;
+                    break;
+                case (ePlayerType.computer):
+                    i_PlayerType = ePlayerType.playerOne;
+                    break;
+            }
+        }
+
+        public bool IsMatch(int i_FirstRow, int i_FirstCol, int i_SecondRow, int i_SecondCol)
+        {
+            return m_Controller.Compare(i_FirstRow, i_FirstCol, i_SecondRow, i_SecondCol);
+        }
+        public void GetMove(out int o_Row, out int o_Col, Enum i_PlayerType)
+        {
+            switch (i_PlayerType)
+            {
+                case ePlayerType.computer:
+                    GetComputerMove(out o_Row, out o_Col, i_PlayerType);
+                    break;
+                default:
+                    GetPlayerMove(out o_Row, out o_Col, i_PlayerType);
+                    break;
+            }
+        }
+
+        public string GetCurrentPlayerName(Enum i_PlayerType)
+        {
+            string playerName;
+            switch(i_PlayerType)
+            {
+                case (ePlayerType.playerOne):
+                    playerName = m_FirstPlayer.Name;
+                    break;
+                case (ePlayerType.playerTwo):
+                    playerName = m_SecondPlayer.Name;
+                    break;
+                default:
+                    playerName = m_ComputerPlayer.Name;
+                    break;
+            }
+            return playerName;
+        }
+
+        public void GetPlayerMove(out int o_Row, out int o_Col, Enum i_PlayerType)
+        {
+            StringBuilder msg = new StringBuilder(" ,Which cell whould you like to expose? (etc. A2)");
+            msg.Insert(0,GetCurrentPlayerName(i_PlayerType));
+            string choiceStr;
+            Console.WriteLine(msg);
+            do
+            {
+                choiceStr = Console.ReadLine();
+            }
+            while (!CheckValidInput(choiceStr, i_PlayerType));
+            StrInputToIndexes(choiceStr, out o_Row, out o_Col);
+        }
+
+        public void ShowChoosenCellData(int i_Row, int i_Col, StringBuilder i_Sd)
+        {
+            Ex02.ConsoleUtils.Screen.Clear();
+            m_Controller.Board.Matrix[i_Row, i_Col].IsOpen = true;
+            PrintBoard(i_Sd);
+        }
+
+        enum eGameType
+        {
+            againstFriend = 1,
+            againstComputer = 2
+        }
+
+        enum ePlayerType
+        {
+           playerOne = 1,
+           playerTwo = 2,
+           computer = 3
+        }
+    }
+}
